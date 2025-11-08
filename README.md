@@ -253,111 +253,70 @@ The timestep `t` is crucial - it tells the network "how noisy is this image?" Th
 
 ## Discussion Questions
 
-### Question 1: Why Predict Noise Instead of the Clean Image?
+### Question 1: Why Start From Pure Noise?
 
-**Setup:** The diffusion model could be parameterized in multiple ways. At timestep `t`, we have:
-```
-xₜ = √(ᾱₜ) x₀ + √(1-ᾱₜ) ε
-```
-
-**Possible choices:**
-1. Predict `x₀` directly (the clean image)
-2. Predict `μₜ` (the mean of the reverse distribution)
-3. Predict `ε` (the noise)
+**Setup:** Look at the progressive generation image above. The diffusion model starts sampling from complete random noise (x_T) and gradually denoises it to create an image.
 
 **Question for the class:**  
-*Why do you think predicting the noise `ε` works better than predicting the clean image `x₀`, especially in early training?*
+*Why do you think diffusion models start generation from pure random noise instead of, say, a blurry average image or a blank canvas? What advantage does starting from noise give us?*
 
-**Hints to guide discussion:**
-- Think about what's easier to predict when the image is heavily corrupted (large `t`)
-- Consider the signal-to-noise ratio at different timesteps
-- What happens when `t` is small (little noise) vs. large (lots of noise)?
+**Think about:**
+- Diversity of generated images
+- What does noise represent in terms of possibilities?
 
 <details>
-<summary><b>Answer (click to reveal)</b></summary>
+<summary><b>Answer (reveal after discussion)</b></summary>
 
-**Mathematical Connection:**
-The paper shows that predicting `ε` is equivalent to predicting the score function (gradient of log probability):
-```
-∇ₓ log p(xₜ) ∝ -ε/√(1-ᾱₜ)
-```
+**Key Insight:** Pure noise represents *maximum uncertainty* - all possible images are equally likely!
 
-**Intuitive Reasons:**
+**Benefits:**
 
-1. **Stability across timesteps:** 
-   - When `t` is large (heavy noise), predicting `x₀` is nearly impossible - the network would need to hallucinate the entire image
-   - But predicting the noise `ε` is well-defined at all timesteps
-   
-2. **Curriculum learning:**
-   - Early in training, the model learns to denoise slightly noisy images (small `t`)
-   - Gradually it learns to denoise heavily corrupted images (large `t`)
-   - Predicting noise creates a natural difficulty curriculum
+1. **Maximum diversity:** Every noise sample can become a completely different image. If we started from a fixed template (like a blurry average), we'd get less diverse outputs.
 
-3. **Connection to score matching:**
-   - This parameterization connects diffusion to denoising score matching (Song & Ermon 2019)
-   - Provides theoretical justification for why it works
+2. **Mirrors the training process:** During training, we corrupt images all the way to pure noise. To reverse this perfectly, we need to start from the same distribution.
 
-4. **Empirical results (Table 2 in paper):**
-   - Predicting `ε` with simplified objective: **FID = 3.17** ✅
-   - Predicting `μ` with variational bound: **FID = 13.22**
-   - Predicting `x₀`: didn't converge
+3. **No mode collapse:** Unlike GANs which can get "stuck" generating similar images, diffusion models explore the full space of possibilities because each noise sample is unique.
 
-**The key insight:** Don't fight the noise - embrace it! Predicting what was added is easier than predicting what was originally there.
+4. **Mathematical elegance:** The forward process ends at N(0,I), so the reverse process naturally starts there.
+
+**Analogy:** Think of noise as having *all* possible images superimposed. The denoising process gradually "collapses" this into one specific image, like a quantum wavefunction collapse!
 
 </details>
 
-### Question 2: How Does the Forward Process Schedule Affect Results?
-
-**Setup:** The forward process gradually adds noise according to a schedule `β₁, β₂, ..., β_T`, where:
-- `βₜ` controls how much noise is added at step `t`
-- Typically `β₁ = 10⁻⁴` to `β_T = 0.02` (small to larger)
-
-The cumulative effect is captured by `ᾱₜ = ∏(1 - βₛ)` for s=1 to t.
+### Question 2: What Appears First During Generation?
 
 **Question for the class:**  
-*The paper tested constant, linear, and quadratic schedules for `βₜ`. Why might a linear schedule (small noise at start, larger noise at end) work better than a constant schedule?*
+*Look at the progressive generation image (Figure 6 above). As the model denoises from left to right, what kinds of features appear first vs. last? Why does this order make sense?*
 
-**Hints:**
-- Think about perceptual importance: fine details vs. overall structure
-- Consider training efficiency
-- What happens if we add too much noise too quickly?
+**Observe:**
+- What can you see at t=750 vs t=250 vs t=0?
+- Which is harder to predict: "this is a face" or "this person has a freckle on their left cheek"?
 
 <details>
-<summary><b>Answer (click to reveal)</b></summary>
+<summary><b>Answer (reveal after discussion)</b></summary>
 
-**Why Schedule Matters:**
+**Observed Pattern:**
+- **Early steps (t=999→750):** Overall structure, layout, general composition
+- **Middle steps (t=500):** Object shapes, rough colors, major features  
+- **Late steps (t=250→0):** Fine details, textures, sharp edges
 
-1. **Perceptual hierarchy:**
-   - Early steps (small `t`): preserve overall structure, add slight noise
-   - Later steps (large `t`): completely destroy fine details
-   - Linear schedule respects that coarse features are more important than fine details
+**Why This Order?**
 
-2. **Training efficiency:**
-   - If `βₜ` is constant, we waste compute learning to denoise at unnecessary granularities
-   - Linear schedule allocates more "steps" to the perceptually important ranges
+1. **Coarse-to-fine is easier:** It's easier to predict "there's a face here" when you have rough shapes than when you have pure noise. The model builds a scaffolding first.
 
-3. **Ensure reversibility:**
-   - If we add too much noise too quickly (large `β` early on), the reverse process can't keep up
-   - Small `βₜ` ensures each step is approximately reversible by a Gaussian
+2. **Information hierarchy:** 
+   - Large-scale structure (composition, pose) carries more information
+   - Fine details (individual hair strands, skin texture) are less critical
+   - Makes sense to get the important stuff right first!
 
-4. **Final distribution matching:**
-   - We need `x_T ≈ N(0,I)` (pure noise)
-   - The schedule is constrained so `ᾱ_T ≈ 0`
-   - The paper sets `β_T = 0.02` to ensure this
+3. **Like human artists:** Painters also work coarse-to-fine:
+   - Sketch rough composition
+   - Block in major shapes and colors
+   - Add details and refinement last
 
-**The paper's choice:**
-```
-βₜ = linear from 10⁻⁴ to 0.02
-```
-This ensures:
-- ᾱ_T is small (≈10⁻⁵ bits per dimension)
-- Each step adds small, reversible noise
-- Smooth perceptual degradation
+4. **Mathematical reason:** The noise schedule is designed this way! Early steps remove large-scale noise (affects overall structure), later steps remove fine-scale noise (affects details).
 
-**Alternative schedules (post-2020):**
-- Cosine schedule (Nichol & Dhariwal, 2021) - even better!
-- Learned schedules - can be optimized
-- But linear was sufficient for this breakthrough paper
+**Cool insight:** This is fundamentally different from autoregressive models (like PixelCNN) which generate pixel-by-pixel in raster order. Diffusion's coarse-to-fine generation is more natural for images!
 
 </details>
 
@@ -892,7 +851,7 @@ This presentation was prepared for DS 5690-01 Gen AI Models in Theory and Practi
 .
 ├── README.md (this file)
 ├── ddpm_demo.py (code demonstration)
-├── forward_process.png 
-├── reverse_process.png 
-└── noise_schedule.png 
+├── forward_process.png (generated)
+├── reverse_process.png (generated)
+└── noise_schedule.png (generated)
 ```
