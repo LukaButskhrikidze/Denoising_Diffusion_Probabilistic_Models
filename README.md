@@ -2,7 +2,9 @@
 
 **Paper:** [Denoising Diffusion Probabilistic Models](https://arxiv.org/abs/2006.11239)  
 **Authors:** Jonathan Ho, Ajay Jain, Pieter Abbeel (UC Berkeley)  
-**Conference:** NeurIPS 2020  
+**Full Citation:**  
+Jonathan Ho, Ajay Jain, and Pieter Abbeel. "Denoising Diffusion Probabilistic Models." *Advances in Neural Information Processing Systems* 33 (2020): 6840-6851.
+
 **Presenter:** Luka Butskhrikidze  
 **Course:** DS 5690-01 Gen AI Models in Theory and Practice (2025F)
 
@@ -136,6 +138,77 @@ This parameterization connects diffusion models to **denoising score matching** 
 ![Progressive Generation](figures/progressive_generation.png)
 *Figure 6 from paper: Watching images emerge from noise. Left to right shows the reverse diffusion process, with large-scale features appearing first and fine details appearing last.*
 
+## Discussion Questions
+
+### Question 1: Why Start From Pure Noise?
+
+**Setup:** Look at the progressive generation image above. The diffusion model starts sampling from complete random noise (x_T) and gradually denoises it to create an image.
+
+**Question for the class:**  
+*Why do you think diffusion models start generation from pure random noise instead of, say, a blurry average image or a blank canvas? What advantage does starting from noise give us?*
+
+**Think about:**
+- Diversity of generated images
+- What does noise represent in terms of possibilities?
+
+<details>
+<summary><b>Answer </b></summary>
+
+**Key Insight:** Pure noise represents *maximum uncertainty* - all possible images are equally likely!
+
+**Benefits:**
+
+1. **Maximum diversity:** Every noise sample can become a completely different image. If we started from a fixed template (like a blurry average), we'd get less diverse outputs.
+
+2. **Mirrors the training process:** During training, we corrupt images all the way to pure noise. To reverse this perfectly, we need to start from the same distribution.
+
+3. **No mode collapse:** Unlike GANs which can get "stuck" generating similar images, diffusion models explore the full space of possibilities because each noise sample is unique.
+
+4. **Mathematical elegance:** The forward process ends at N(0,I), so the reverse process naturally starts there.
+
+**Analogy:** Think of noise as having *all* possible images superimposed. The denoising process gradually "collapses" this into one specific image, like a quantum wavefunction collapse!
+
+</details>
+
+### Question 2: What Appears First During Generation?
+
+**Question for the class:**  
+*Look at the progressive generation image (Figure 6 above). As the model denoises from left to right, what kinds of features appear first vs. last? Why does this order make sense?*
+
+**Observe:**
+- What can you see at t=750 vs t=250 vs t=0?
+- Which is harder to predict: "this is a face" or "this person has a freckle on their left cheek"?
+
+<details>
+<summary><b>Answer </b></summary>
+
+**Observed Pattern:**
+- **Early steps (t=999→750):** Overall structure, layout, general composition
+- **Middle steps (t=500):** Object shapes, rough colors, major features  
+- **Late steps (t=250→0):** Fine details, textures, sharp edges
+
+**Why This Order?**
+
+1. **Coarse-to-fine is easier:** It's easier to predict "there's a face here" when you have rough shapes than when you have pure noise. The model builds a scaffolding first.
+
+2. **Information hierarchy:** 
+   - Large-scale structure (composition, pose) carries more information
+   - Fine details (individual hair strands, skin texture) are less critical
+   - Makes sense to get the important stuff right first!
+
+3. **Like human artists:** Painters also work coarse-to-fine:
+   - Sketch rough composition
+   - Block in major shapes and colors
+   - Add details and refinement last
+
+4. **Mathematical reason:** The noise schedule is designed this way! Early steps remove large-scale noise (affects overall structure), later steps remove fine-scale noise (affects details).
+
+**Cool insight:** This is fundamentally different from autoregressive models (like PixelCNN) which generate pixel-by-pixel in raster order. Diffusion's coarse-to-fine generation is more natural for images!
+
+</details>
+
+---
+
 ### The Simplified Training Objective
 
 Instead of the complex variational bound, the paper uses:
@@ -251,290 +324,84 @@ The timestep `t` is crucial - it tells the network "how noisy is this image?" Th
 
 ---
 
-## Discussion Questions
-
-### Question 1: Why Start From Pure Noise?
-
-**Setup:** Look at the progressive generation image above. The diffusion model starts sampling from complete random noise (x_T) and gradually denoises it to create an image.
-
-**Question for the class:**  
-*Why do you think diffusion models start generation from pure random noise instead of, say, a blurry average image or a blank canvas? What advantage does starting from noise give us?*
-
-**Think about:**
-- Diversity of generated images
-- What does noise represent in terms of possibilities?
-
-<details>
-<summary><b>Answer (reveal after discussion)</b></summary>
-
-**Key Insight:** Pure noise represents *maximum uncertainty* - all possible images are equally likely!
-
-**Benefits:**
-
-1. **Maximum diversity:** Every noise sample can become a completely different image. If we started from a fixed template (like a blurry average), we'd get less diverse outputs.
-
-2. **Mirrors the training process:** During training, we corrupt images all the way to pure noise. To reverse this perfectly, we need to start from the same distribution.
-
-3. **No mode collapse:** Unlike GANs which can get "stuck" generating similar images, diffusion models explore the full space of possibilities because each noise sample is unique.
-
-4. **Mathematical elegance:** The forward process ends at N(0,I), so the reverse process naturally starts there.
-
-**Analogy:** Think of noise as having *all* possible images superimposed. The denoising process gradually "collapses" this into one specific image, like a quantum wavefunction collapse!
-
-</details>
-
-### Question 2: What Appears First During Generation?
-
-**Question for the class:**  
-*Look at the progressive generation image (Figure 6 above). As the model denoises from left to right, what kinds of features appear first vs. last? Why does this order make sense?*
-
-**Observe:**
-- What can you see at t=750 vs t=250 vs t=0?
-- Which is harder to predict: "this is a face" or "this person has a freckle on their left cheek"?
-
-<details>
-<summary><b>Answer (reveal after discussion)</b></summary>
-
-**Observed Pattern:**
-- **Early steps (t=999→750):** Overall structure, layout, general composition
-- **Middle steps (t=500):** Object shapes, rough colors, major features  
-- **Late steps (t=250→0):** Fine details, textures, sharp edges
-
-**Why This Order?**
-
-1. **Coarse-to-fine is easier:** It's easier to predict "there's a face here" when you have rough shapes than when you have pure noise. The model builds a scaffolding first.
-
-2. **Information hierarchy:** 
-   - Large-scale structure (composition, pose) carries more information
-   - Fine details (individual hair strands, skin texture) are less critical
-   - Makes sense to get the important stuff right first!
-
-3. **Like human artists:** Painters also work coarse-to-fine:
-   - Sketch rough composition
-   - Block in major shapes and colors
-   - Add details and refinement last
-
-4. **Mathematical reason:** The noise schedule is designed this way! Early steps remove large-scale noise (affects overall structure), later steps remove fine-scale noise (affects details).
-
-**Cool insight:** This is fundamentally different from autoregressive models (like PixelCNN) which generate pixel-by-pixel in raster order. Diffusion's coarse-to-fine generation is more natural for images!
-
-</details>
-
----
-
 ## Critical Analysis
 
 ### What This Paper Got Right ✅
 
-1. **Simplification over theory:**  
-   The variational bound is complex, but L_simple is elegant. Sometimes ignoring proper weighting works better!
+1. **Simplification over theory:** The variational bound is complex, but L_simple is elegant. Sometimes ignoring proper weighting works better!
 
-2. **Connecting multiple fields:**  
-   Links diffusion models, score matching, Langevin dynamics, and variational inference
+2. **Connecting multiple fields:** Links diffusion models, score matching, Langevin dynamics, and variational inference
 
-3. **Reproducible results:**  
-   Released code, clear algorithm, works on multiple datasets
+3. **Reproducible results:** Released code, clear algorithm, works on multiple datasets
 
-### Limitations and Oversights ⚠️
+### Three Main Limitations ⚠️
 
 #### 1. **Extremely Slow Sampling**
-- **Problem:** Requires 1000 neural network evaluations per image
-  - CIFAR10: ~17 seconds per image (batch of 256)
-  - 256×256: ~300 seconds per image (batch of 128)
-- **Why it matters:** GANs generate images in 1 forward pass (~0.01 seconds)
-- **Impact:** Limited real-time applications
-- **Later solutions:** DDIM (Song et al., 2021) reduces to 50 steps with same quality
+- Requires 1000 neural network evaluations per image
+- CIFAR10: ~17 seconds vs GANs at ~0.01 seconds
+- Limited real-time applications
+- Later work (DDIM, 2021) reduced this to 50 steps
 
 #### 2. **Poor Log-Likelihood Despite Good Samples**
-- **Problem:** Lossless codelength (NLL) is worse than PixelCNN
-  - CIFAR10: 3.75 bits/dim (DDPM) vs 3.03 bits/dim (PixelCNN)
-- **Why it matters:** Suggests the model is "wasteful" in how it represents data
-- **Authors' insight:** Most bits encode imperceptible details (see Section 4.3)
-  - Rate (L₁+...+L_T): 1.78 bits/dim
-  - Distortion (L₀): 1.97 bits/dim (RMSE = 0.95 on 0-255 scale)
-- **Philosophical question:** Is likelihood the right metric? Good samples > good likelihood?
+- Worse bits/dim than PixelCNN (3.75 vs 3.03)
+- Most bits encode imperceptible details
+- Raises question: Is likelihood the right metric?
 
-#### 3. **Limited Theoretical Understanding**
-- **Problem:** Why does the simplified objective work better than the variational bound?
-- **Gap:** The paper shows empirically that ignoring proper loss weighting helps, but doesn't fully explain *why*
-- **Quote from paper:** "This reweighting leads to better sample quality" - but mechanism unclear
-- **Later work:** Score-based models (Song et al.) provided better theoretical grounding
-
-#### 4. **Computational Cost During Training**
-- **Training time:**
-  - CIFAR10: 10.6 hours on 8 V100 GPUs (still reasonable)
-  - 256×256 images: Days on expensive hardware
-- **Comparison:** GANs train faster, though less stably
-- **Accessibility:** Limits who can reproduce/extend this work
-
-#### 5. **Lack of Controllability**
-- **Problem:** The paper only demonstrates unconditional generation
-- **Missing:** How to condition on class labels, text, or other attributes?
-- **Later solutions:** Classifier guidance (Dhariwal & Nichol, 2021), classifier-free guidance (Ho & Salimans, 2022)
-
-#### 6. **Limited Analysis of Failure Cases**
-- The paper shows great samples but doesn't deeply analyze:
-  - When does the model fail?
-  - Mode coverage vs. mode dropping?
-  - Comparison of failure modes vs. GANs?
-
-### What Could Have Been Explored Further
-
-1. **Architectural choices:**  
-   Why U-Net? Did they try Transformers? (This was 2020, pre-ViT explosion)
-
-2. **Noise schedule ablations:**  
-   Only tested constant/linear/quadratic, but cosine (later shown better) wasn't explored
-
-3. **Progressive distillation:**  
-   Could we train a "student" model to skip steps? (Yes - later work showed this)
-
-### Has This Been Disputed?
-
-**No major disputes,** but important refinements:
-
-1. **Song et al. (2021):** Showed score-based models and DDPM are equivalent frameworks
-2. **Dhariwal & Nichol (2021):** Demonstrated diffusion can beat GANs with better architecture
-3. **Rombach et al. (2022):** Moved diffusion to latent space (Stable Diffusion) for efficiency
-
-The core contribution stands strong, but the field has rapidly improved upon it.
+#### 3. **Lack of Controllability**
+- Only demonstrates unconditional generation
+- No built-in way to condition on text, class labels, or attributes
+- Later work added classifier guidance and classifier-free guidance
 
 ---
 
 ## Impact & Legacy
 
-### Immediate Impact (2020-2021)
-
-**Before this paper:**
-- Diffusion models were theoretical curiosities
-- "GANs are the only way to get good samples"
-- Sample quality: GANs >> VAEs > Diffusion
-
-**After this paper:**
-- Diffusion models became practical
-- Sparked explosion of research
-- Within 2 years: DALL-E 2, Stable Diffusion, Imagen
-
 ### The Lineage to Modern AI
+
+This paper sparked an explosion of research that led directly to today's image generation systems:
 
 ```
 DDPM (2020)
     ↓
-Improved DDPM (2021) - Dhariwal & Nichol
+Improved DDPM (2021)
     ↓
 GLIDE (2021) - Text-conditional diffusion
     ↓
-    ├→ DALL-E 2 (2022) - OpenAI's text-to-image
-    ├→ Imagen (2022) - Google's text-to-image
-    └→ Stable Diffusion (2022) - Open-source, latent diffusion
+    ├→ DALL-E 2 (2022)
+    ├→ Imagen (2022)
+    └→ Stable Diffusion (2022)
         ↓
-    Midjourney, Adobe Firefly, SDXL, etc.
+    Midjourney, Adobe Firefly, etc.
 ```
-
-**Key descendants:**
-
-1. **Latent Diffusion Models (Stable Diffusion):**
-   - Run diffusion in compressed latent space, not pixel space
-   - 5-10× faster, same quality
-   - Enabled consumer-grade image generation
-
-2. **Text-to-Image Models:**
-   - DALL-E 2, Imagen, Midjourney
-   - All use diffusion models as the core generator
-   - Combined with CLIP embeddings for text conditioning
-
-3. **Video Generation:**
-   - Runway Gen-2, Pika, Stable Video Diffusion
-   - Extend temporal dimension
-
-4. **Audio Generation:**
-   - DiffWave, WaveGrad
-   - Applied diffusion to waveforms
-
-### Connection to Score-Based Models
-
-**The theoretical "aha!" moment:**
-
-Song et al. (2021) showed that diffusion models and score-based models are *the same thing* viewed from different perspectives:
-
-- **Diffusion view:** Learn to reverse a noising process
-- **Score view:** Learn the gradient of the data distribution
-
-**Mathematical connection:**
-```
-Score: ∇ₓ log p(xₜ)
-Noise prediction: -ε/√(1-ᾱₜ)
-```
-
-They're related by a scaling factor! This unified two separate research directions and provided deeper theoretical grounding.
 
 ### Applications Beyond Images
 
-#### 1. **Protein Structure Prediction** (Your Domain!)
+Diffusion models have expanded far beyond image generation:
 
-- **RFdiffusion (2023):** Generate novel protein structures
-  - Uses SE(3)-equivariant diffusion on protein coordinates
-  - Can design proteins that bind to specific targets
-  - Revolutionary for drug design and synthetic biology
+**Protein Science & Drug Discovery:**
+- Novel protein structure generation
+- Protein-protein binding design
+- Antibody design for therapeutics
+- Molecular conformation sampling
+- Drug molecule generation
 
-- **ProteinMPNN + RFdiffusion pipeline:**
-  - Diffusion generates backbone structure
-  - ProteinMPNN designs sequences
-  - Validated experimentally!
+**Other Domains:**
+- Medical imaging (MRI reconstruction, CT denoising)
+- Video generation
+- Audio and speech synthesis
+- 3D shape generation
+- Motion planning for robotics
+- Weather prediction and climate modeling
 
-- **Connection to DDPM:**
-  - Same core algorithm (noise prediction, reverse process)
-  - Applied to 3D coordinates instead of images
-  - Respects rotational/translational symmetry
-
-#### 2. **Molecular Dynamics**
-
-- **DiffMD:** Generate molecular conformations
-- **Torsional Diffusion:** Sample protein conformational space
-- **GeoDiff:** 3D molecule generation
-
-#### 3. **Other Domains**
-
-- **Medical imaging:** MRI reconstruction, CT denoising
-- **Climate modeling:** Weather prediction, super-resolution
-- **Robotics:** Motion planning, trajectory optimization
-- **Speech synthesis:** DiffWave, Grad-TTS
-- **Point clouds:** Shape generation, LiDAR completion
+The same core algorithm (predict noise, reverse the process) works across all these domains with appropriate modifications.
 
 ### Why Diffusion Models Won
 
-**Compared to GANs:**
-- ✅ More stable training
-- ✅ Better mode coverage
-- ✅ Better sample diversity
-- ❌ Much slower sampling
+**Compared to GANs:** More stable training, better diversity, but slower sampling  
+**Compared to VAEs:** Much better sample quality, but worse likelihood  
+**Compared to Autoregressive:** Better for images, parallelizable training, but still slow sampling
 
-**Compared to VAEs:**
-- ✅ Much better sample quality
-- ✅ No posterior collapse
-- ❌ Worse log-likelihood
-
-**Compared to Autoregressive:**
-- ✅ Parallelizable training
-- ✅ Better long-range coherence (for images)
-- ❌ Slower sampling (though both are sequential)
-
-**The sweet spot:** Diffusion models are the "tortoise" - slower but more reliable, and speed can be improved with algorithmic tricks.
-
-### Current State (2024-2025)
-
-**Diffusion models are now:**
-- The dominant approach for image generation
-- Standard for text-to-image systems
-- Expanding into video, 3D, audio, proteins
-- Used in production by Adobe, Midjourney, Stability AI, OpenAI
-
-**Open questions:**
-- Can we make them faster? (Yes, but still not real-time for high-res)
-- Can we understand them better theoretically?
-- What are the fundamental limits?
-
-This paper didn't just introduce a technique - it shifted the entire field's paradigm.
+Diffusion models found the sweet spot: stable, high-quality, and theoretically grounded.
 
 ---
 
@@ -850,8 +717,8 @@ This presentation was prepared for DS 5690-01 Gen AI Models in Theory and Practi
 ```
 .
 ├── README.md (this file)
-├── ddpm_demo.py (code demonstration)
-├── forward_process.png (generated)
-├── reverse_process.png (generated)
-└── noise_schedule.png (generated)
+├── ddpm_demo.ipynb (code demonstration)
+├── forward_process.png 
+├── reverse_process.png 
+└── noise_schedule.png 
 ```
