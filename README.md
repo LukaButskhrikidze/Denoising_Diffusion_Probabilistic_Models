@@ -717,7 +717,7 @@ This presentation was prepared for DS 5690-01 Gen AI Models in Theory and Practi
 ```
 .
 ├── README.md (this file)
-├── ddpm_demo.ipynb (code demonstration)
+├── ddpm_demo.py (code demonstration)
 ├── forward_process.png 
 ├── reverse_process.png 
 └── noise_schedule.png 
